@@ -1,0 +1,386 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [ main ]
+  # Manual workflow dispatch to allow running integration tests on-demand
+  workflow_dispatch:
+    inputs:
+      run_integration:
+        description: 'Set to true to run integration tests (requires emulator or configured COSMOSDB secrets)'
+        required: false
+        default: 'false'
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.13'
+  AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    name: Checks (lint, types, security)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          requirements-dev.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run linting with ruff
+      run: |
+        # Ruff is much faster than flake8 and includes import sorting
+        ruff check src/ tests/ scripts/ --output-format=github
+
+    - name: Run type checking with mypy
+      run: |
+        # Uses settings from pyproject.toml for consistency with pre-commit
+        mypy src/ scripts/
+
+    - name: Run code formatting check
+      run: |
+        black --check --line-length=100 src/ tests/ scripts/
+
+    - name: Run unit tests
+      env:
+        AZURE_CLIENT_ID: test-client-id
+        AZURE_TENANT_ID: test-tenant-id
+        ENVIRONMENT: testing
+      run: |
+        pytest tests/ -v --tb=short
+
+    - name: Validate Azure Function settings
+      run: |
+        python scripts/check_azure_settings.py
+
+    - name: Validate Grafana configurations
+      run: |
+        python scripts/validate_grafana_config.py
+
+  integration:
+    runs-on: ubuntu-latest
+    name: Integration tests (Cosmos emulator)
+    # Integration tests are opt-in for template projects. By default they are skipped
+    # in GitHub-hosted runners because the Cosmos emulator requires privileged
+    # container capabilities or a self-hosted runner. To run integrations in CI,
+    # trigger this workflow manually and set the `run_integration` input to 'true'.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration == 'true' }}
+    needs: checks
+    services:
+      cosmos-emulator:
+        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+        ports:
+          - 8081:8081
+        options: >-
+          --health-cmd "curl -k -f https://localhost:8081/_explorer/emulator.pem || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          requirements-dev.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Wait for emulator to be ready
+      run: |
+        timeout 300 bash -c "until curl -k -f https://localhost:8081/_explorer/emulator.pem; do sleep 5; done"
+
+    - name: Run integration tests
+      env:
+        COSMOSDB_ENDPOINT: https://localhost:8081
+        # Use repository secrets for sensitive values instead of hard-coding them
+        COSMOSDB_KEY: ${{ secrets.COSMOSDB_KEY }}
+        COSMOSDB_DATABASE_NAME: test_db
+        COSMOSDB_USERS_CONTAINER: users
+        COSMOSDB_AUDITLOGS_CONTAINER: auditlogs
+        COSMOSDB_RATELIMITS_CONTAINER: ratelimits
+        ENVIRONMENT: testing
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      run: |
+        pytest tests/ --cov=src --cov-report=xml --cov-report=html --junitxml=pytest-results.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          pytest-results.xml
+          htmlcov/
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false  # Don't fail CI if Codecov upload fails
+        token: ${{ secrets.CODECOV_TOKEN }}  # Required for v4
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Application
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        # Must match Azure Functions runtime version for compatible bundled packages
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: requirements.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create deployment folder (Python Azure Functions minimal set)
+      run: |
+        set -euo pipefail
+        # Clean pyc and caches
+        find . -type d -name "__pycache__" -exec rm -rf {} + || true
+        find . -type f -name "*.pyc" -delete || true
+
+        # Prepare deployment folder
+        rm -rf deployment && mkdir -p deployment/src
+
+        # Copy ultra-thin wrapper from repo root (required by Azure Functions v2)
+        if [ -f function_app.py ]; then
+          cp function_app.py deployment/
+          echo "Copied function_app.py to deployment/"
+        else
+          echo "ERROR: function_app.py not found at repo root"
+          exit 1
+        fi
+
+        # Copy src/ AS a subdirectory (preserves 'from src.X import Y' imports)
+        rsync -av --delete \
+          --exclude '__pycache__' \
+          --exclude '*.pytest_cache*' \
+          --exclude '*.pyc' \
+          src/ deployment/src/
+
+        # Copy minimal runtime files: host.json, requirements.txt
+        if [ -f host.json ]; then cp host.json deployment/; fi
+        if [ -f requirements.txt ]; then cp requirements.txt deployment/; fi
+
+        # CRITICAL: Install dependencies into deployment package
+        # Flex Consumption with remote-build=false requires bundled dependencies
+        # See: https://github.com/Azure/azure-functions-python-worker/issues/1262
+        echo "Installing Python dependencies into deployment/.python_packages/"
+        pip install --target="deployment/.python_packages/lib/site-packages" -r requirements.txt --upgrade
+        echo "Dependencies installed to deployment/.python_packages/lib/site-packages/"
+        ls -la deployment/.python_packages/lib/site-packages/ | head -20
+
+        # Validate Python v2 programming model entrypoint (function_app.py is required)
+        echo "Validating function layout in deployment/"
+        if [ -f deployment/function_app.py ]; then
+          echo "Found function_app.py — Python v2 programming model detected"
+        elif find deployment -type f -name function.json | grep -q .; then
+          echo "Found function.json files — Python v1 programming model detected"
+        else
+          echo "ERROR: Neither function_app.py (v2 model) nor function.json files (v1 model) found!"
+          echo "Azure Functions Python v2 requires function_app.py at the package root."
+          echo "See: https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-python#folder-structure"
+          find deployment -maxdepth 2 -type f -print
+          exit 1
+        fi
+
+    - name: Validate deployment contents before upload
+      run: |
+        set -euo pipefail
+        echo "Deployment folder contents before upload (including hidden):"
+        ls -la deployment || true
+        echo ""
+        echo "Checking .python_packages folder:"
+        ls -la deployment/.python_packages/lib/site-packages/ | head -20 || echo "ERROR: .python_packages not found!"
+
+        if [ ! -f deployment/host.json ]; then
+          echo "ERROR: deployment/host.json not found. Listing repo root for diagnostics:"
+          ls -la
+          echo "Contents of deployment/:"
+          ls -la deployment || true
+          exit 1
+        fi
+
+        if [ ! -d deployment/.python_packages ]; then
+          echo "ERROR: deployment/.python_packages not found - dependencies won't be available at runtime!"
+          exit 1
+        fi
+
+    - name: Upload deployment artifact (directory)
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-package
+        path: deployment/
+        include-hidden-files: true  # Include .python_packages folder
+        retention-days: 30  # Keep artifacts for 30 days
+        if-no-files-found: error
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build]
+    name: Deploy to Production
+    # Run production deploy only for semver tag pushes (created by release tooling)
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
+
+    steps:
+    - name: Download deployment artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: deployment-package
+        path: deployment/
+
+    - name: Debug deployment contents after download
+      run: |
+        set -euo pipefail
+        echo "Listing deployment/ after download (including hidden):"
+        ls -la deployment || true
+        echo ""
+        echo "Verifying .python_packages folder exists:"
+        if [ -d deployment/.python_packages ]; then
+          echo "Found .python_packages - listing some packages:"
+          ls deployment/.python_packages/lib/site-packages/ | head -20
+        else
+          echo "ERROR: .python_packages folder missing after download!"
+          echo "This means dependencies won't be available at runtime."
+          exit 1
+        fi
+        echo ""
+        echo "Check for nested zip files (should be none):"
+        find deployment -type f -name '*.zip' -print || true
+        echo "Show host.json (first 200 lines):"
+        if [ -f deployment/host.json ]; then sed -n '1,200p' deployment/host.json; else echo "host.json not found"; fi
+
+    - name: Login to Azure using user-assigned managed identity (OIDC)
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Ensure Function App runtime settings (Python)
+      run: |
+        set -euo pipefail
+        echo "Ensuring Function App has Python runtime settings"
+        RG=${{ vars.AZURE_RESOURCE_GROUP }}
+        APP=${{ vars.AZURE_FUNCTIONAPP_NAME }}
+
+        echo "Current app settings for $APP in $RG:"
+        az functionapp config appsettings list -g "$RG" -n "$APP" -o table || true
+        # Read-only validation: do not modify app settings for Flex Consumption here
+        worker=$(az functionapp config appsettings list -g "$RG" -n "$APP" --query "[?name=='FUNCTIONS_WORKER_RUNTIME'].value | [0]" -o tsv || echo "")
+        linuxfx=$(az functionapp show -g "$RG" -n "$APP" --query "siteConfig.linuxFxVersion" -o tsv || echo "")
+
+        if [ -z "$worker" ] || [ "$worker" = "null" ]; then
+          echo "WARNING: FUNCTIONS_WORKER_RUNTIME is not set on $APP. For Flex Consumption, runtime settings should be managed by Terraform or portal. Do not set this in CI."
+        else
+          echo "FUNCTIONS_WORKER_RUNTIME=$worker"
+        fi
+
+        if [ -z "$linuxfx" ] || [ "$linuxfx" = "null" ]; then
+          echo "WARNING: LinuxFxVersion is not set on $APP. For Flex Consumption, configure runtime via Terraform/portal."
+        else
+          echo "LinuxFxVersion=$linuxfx"
+        fi
+
+    - name: Deploy to Azure Functions (Production)
+      uses: Azure/functions-action@v1
+      with:
+        app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+        package: deployment/
+        # Disable remote build - dependencies are pre-bundled in .python_packages/
+        scm-do-build-during-deployment: 'false'
+        enable-oryx-build: 'false'
+
+    - name: Fetch Kudu deployment logs (post-deploy)
+      if: always()
+      env:
+        AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+      run: |
+        set -euo pipefail
+        echo "Fetching publishing credentials for $AZURE_FUNCTIONAPP_NAME in $AZURE_RESOURCE_GROUP"
+        creds=$(az webapp deployment list-publishing-credentials -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" -o json)
+        # parse credentials using jq (avoid embedding heredoc/python in YAML)
+        SCM_USER=$(echo "$creds" | jq -r '.publishingUserName // .user // empty')
+        SCM_PASS=$(echo "$creds" | jq -r '.publishingPassword // .pwd // empty')
+        SCM_URI=$(echo "$creds" | jq -r '.scmUri // .scmUrl // empty')
+        echo "SCM_USER=$SCM_USER"
+        echo "SCM_URI=$SCM_URI"
+        if [ -z "$SCM_URI" ]; then echo "Could not determine SCM URI from publishing credentials"; exit 0; fi
+        echo "SCM_URI=$SCM_URI"
+        # extract host name
+        SCM_HOST=$(echo "$SCM_URI" | sed -E 's#https?://([^/]+).*#\1#')
+        echo "SCM_HOST=$SCM_HOST"
+        # jq is expected to be available on the runner
+        echo "Listing deployments via Kudu API"
+        curl -s -u "$SCM_USER:$SCM_PASS" "https://${SCM_HOST}/api/deployments" | jq '.' || true
+        LATEST_ID=$(curl -s -u "$SCM_USER:$SCM_PASS" "https://${SCM_HOST}/api/deployments" | jq -r '.[0].id') || true
+        if [ -n "$LATEST_ID" ] && [ "$LATEST_ID" != "null" ]; then
+          echo "Fetching latest deployment log id: $LATEST_ID"
+          curl -s -u "$SCM_USER:$SCM_PASS" "https://${SCM_HOST}/api/deployments/$LATEST_ID/log" | jq '.' || true
+        else
+          echo "No deployment entries returned by Kudu API"
+        fi
+
+    - name: Post-deploy smoke test — verify functions registered
+      if: always()
+      env:
+        AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+      run: |
+        set -euo pipefail
+        echo "Checking that at least one function is registered in $AZURE_FUNCTIONAPP_NAME..."
+        funcs=$(az functionapp function list -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" -o json || echo "[]")
+        count=$(echo "$funcs" | jq 'length')
+        echo "Found $count functions"
+        if [ "$count" -eq 0 ]; then
+          echo "ERROR: No functions registered. This usually means the Function runtime/runtime stack is not configured (FUNCTIONS_WORKER_RUNTIME, linuxFxVersion)."
+          echo "Please configure the runtime via Terraform or the Azure Portal before retrying."
+          exit 1
+        fi
+
+    # - name: Run production smoke tests
+    #   env:
+    #     PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+    #     API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+    #   run: |
+    #     # Add production smoke test commands here
+    #     curl -f "$PRODUCTION_URL/api/health" || exit 1

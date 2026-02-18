@@ -1,0 +1,349 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SaaS Backend - SRE Golden Metrics",
+    "tags": ["saas", "backend", "sre", "golden-metrics"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "environment",
+          "type": "custom",
+          "query": "production,staging,development",
+          "current": {
+            "selected": true,
+            "text": "production",
+            "value": "production"
+          },
+          "options": [
+            { "text": "Production", "value": "production", "selected": true },
+            { "text": "Staging", "value": "staging", "selected": false },
+            { "text": "Development", "value": "development", "selected": false }
+          ]
+        },
+        {
+          "name": "app",
+          "type": "custom",
+          "query": "saas-backend-template",
+          "current": {
+            "selected": true,
+            "text": "saas-backend-template",
+            "value": "saas-backend-template"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "SRE Golden Metrics Overview",
+        "type": "text",
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+        "options": {
+          "content": "# SRE Golden Metrics Dashboard\n\nThis dashboard displays the four golden signals of monitoring:\n- **Latency**: How long it takes to service a request\n- **Traffic**: How much demand is being placed on your system  \n- **Errors**: The rate of requests that fail\n- **Saturation**: How full your service is",
+          "mode": "markdown"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (Traffic)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 3 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{app=\"$app\", environment=\"$environment\"}[5m]))",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 100 },
+                { "color": "red", "value": 1000 }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "horizontal"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 3 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_errors_total{app=\"$app\", environment=\"$environment\"}[5m])) / sum(rate(http_requests_total{app=\"$app\", environment=\"$environment\"}[5m])) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "palette-classic" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1 },
+                { "color": "red", "value": 5 }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Average Response Time (Latency)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 12, "y": 3 },
+        "targets": [
+          {
+            "expr": "avg(http_request_duration_ms{app=\"$app\", environment=\"$environment\"})",
+            "legendFormat": "Avg Latency"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "color": { "mode": "palette-classic" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 500 },
+                { "color": "red", "value": 2000 }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center"
+        }
+      },
+      {
+        "id": 5,
+        "title": "System Saturation",
+        "type": "gauge",
+        "gridPos": { "h": 8, "w": 6, "x": 18, "y": 3 },
+        "targets": [
+          {
+            "expr": "avg(resource_utilization_percent{app=\"$app\", environment=\"$environment\", resource=\"cpu\"})",
+            "legendFormat": "CPU %"
+          },
+          {
+            "expr": "avg(resource_utilization_percent{app=\"$app\", environment=\"$environment\", resource=\"memory\"})",
+            "legendFormat": "Memory %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 70 },
+                { "color": "red", "value": 90 }
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 6,
+        "title": "Request Rate Over Time",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+        "targets": [
+          {
+            "expr": "sum by (endpoint) (rate(http_requests_total{app=\"$app\", environment=\"$environment\"}[5m]))",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        },
+        "options": {
+          "legend": { "displayMode": "table", "placement": "bottom" },
+          "tooltip": { "mode": "multi", "sort": "none" }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Response Time Distribution",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_ms_bucket{app=\"$app\", environment=\"$environment\"}[5m])) by (le))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket{app=\"$app\", environment=\"$environment\"}[5m])) by (le))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_ms_bucket{app=\"$app\", environment=\"$environment\"}[5m])) by (le))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Error Rate by Endpoint",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+        "targets": [
+          {
+            "expr": "sum by (endpoint, status_code) (rate(http_requests_total{app=\"$app\", environment=\"$environment\", status_code=~\"4..|5..\"}[5m]))",
+            "legendFormat": "{{endpoint}} - {{status_code}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Rate Limiting Activity",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+        "targets": [
+          {
+            "expr": "sum by (endpoint, type) (rate(rate_limit_exceeded{app=\"$app\", environment=\"$environment\"}[5m]))",
+            "legendFormat": "{{endpoint}} - {{type}} limit"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Top Endpoints by Traffic",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (endpoint) (rate(http_requests_total{app=\"$app\", environment=\"$environment\"}[5m])))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "auto",
+              "filterable": true
+            }
+          }
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "app": true,
+                "environment": true
+              },
+              "renameByName": {
+                "endpoint": "Endpoint",
+                "Value": "Requests/sec"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Function Performance Metrics",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+        "targets": [
+          {
+            "expr": "avg by (function) (function_duration_ms{app=\"$app\", environment=\"$environment\"})",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "displayMode": "auto",
+              "filterable": true
+            }
+          }
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "app": true,
+                "environment": true
+              },
+              "renameByName": {
+                "function": "Function",
+                "Value": "Avg Duration (ms)"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

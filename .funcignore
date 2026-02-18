@@ -1,0 +1,72 @@
+# .funcignore - Files to exclude from Azure Functions deployment
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+.hypothesis/
+pytest-results.xml
+
+# Development files
+tests/
+*.test.py
+*_test.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.pre-commit-config.yaml
+
+# Configuration templates (not actual config)
+local.settings.json.template
+.env.example
+
+# Development dependencies source files
+requirements-dev.txt
+requirements-dev.in
+requirements.in
+
+# Scripts (run locally, not in Azure)
+scripts/
+
+# Grafana config (synced separately)
+grafana/
+
+# Security scanning
+.secrets.baseline
+
+# Build artifacts
+*.egg-info/
+dist/
+build/

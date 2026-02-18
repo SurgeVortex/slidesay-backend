@@ -1,0 +1,33 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "FUNCTIONS_EXTENSION_VERSION": "~4",
+    "PYTHON_ISOLATE_WORKER_DEPENDENCIES": "1",
+
+    "APP_NAME": "saas-backend-template",
+    "ENVIRONMENT": "development",
+
+    "COSMOSDB_ENDPOINT": "https://localhost:8081",
+    "COSMOSDB_AUTH_TOKEN": "<replace-with-cosmos-emulator-key>",
+    "COSMOSDB_DATABASE_NAME": "saas_template",
+    "COSMOSDB_USERS_CONTAINER": "users",
+    "COSMOSDB_AUDITLOGS_CONTAINER": "auditlogs",
+    "COSMOSDB_RATELIMITS_CONTAINER": "ratelimits",
+
+    "GRAFANA_CLOUD_URL": "https://your-grafana-instance.grafana.net",
+    "GRAFANA_CLOUD_TOKEN": "<replace-with-grafana-api-key>",
+
+    "AZURE_CLIENT_ID": "your-entra-external-id-client-id",
+    "AZURE_TENANT_ID": "your-tenant-id",
+    "ADMIN_EMAILS": "admin@example.com,admin2@example.com",
+
+    "LOG_LEVEL": "DEBUG"
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*",
+    "CORSCredentials": false
+  }
+}

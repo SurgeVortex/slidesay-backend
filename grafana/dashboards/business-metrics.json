@@ -1,0 +1,221 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SaaS Backend - Business Metrics",
+    "tags": ["saas", "backend", "business", "metrics"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "1m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "environment",
+          "type": "custom",
+          "query": "production,staging,development",
+          "current": {
+            "selected": true,
+            "text": "production",
+            "value": "production"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Business Metrics Overview",
+        "type": "text",
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+        "options": {
+          "content": "# Business Metrics Dashboard\n\nMonitoring key business metrics for the SaaS application including user activity, authentication, and feature usage.",
+          "mode": "markdown"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Users (24h)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 0, "y": 3 },
+        "targets": [
+          {
+            "expr": "count(count by (user_id) (business_users{app=\"saas-backend-template\", environment=\"$environment\"} offset 24h))",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "yellow", "value": 10 },
+                { "color": "green", "value": 100 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Successful Logins (24h)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 6, "y": 3 },
+        "targets": [
+          {
+            "expr": "sum(increase(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint=\"/auth/login\", status_code=\"200\"}[24h]))",
+            "legendFormat": "Successful Logins"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Failed Login Attempts (24h)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 12, "y": 3 },
+        "targets": [
+          {
+            "expr": "sum(increase(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint=\"/auth/login\", status_code=\"401\"}[24h]))",
+            "legendFormat": "Failed Logins"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 10 },
+                { "color": "red", "value": 50 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "API Usage (24h)",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 18, "y": 3 },
+        "targets": [
+          {
+            "expr": "sum(increase(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint!=\"/health\"}[24h]))",
+            "legendFormat": "Total API Calls"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "User Authentication Trends",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint=\"/auth/login\", status_code=\"200\"}[5m]))",
+            "legendFormat": "Successful Logins/min"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint=\"/auth/login\", status_code=\"401\"}[5m]))",
+            "legendFormat": "Failed Logins/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "API Endpoint Usage",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+        "targets": [
+          {
+            "expr": "sum by (endpoint) (rate(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\", endpoint!=\"/health\"}[5m]))",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Rate Limiting Impact",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+        "targets": [
+          {
+            "expr": "sum(rate(rate_limit_exceeded{app=\"saas-backend-template\", environment=\"$environment\"}[5m]))",
+            "legendFormat": "Rate Limited Requests/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Database Operations",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+        "targets": [
+          {
+            "expr": "sum by (operation) (rate(function_calls_total{app=\"saas-backend-template\", environment=\"$environment\", function=~\".*cosmos.*\"}[5m]))",
+            "legendFormat": "{{operation}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "User Activity Heatmap",
+        "type": "heatmap",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
+        "targets": [
+          {
+            "expr": "sum by (hour) (rate(http_requests_total{app=\"saas-backend-template\", environment=\"$environment\"}[1h]))",
+            "legendFormat": "{{hour}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

@@ -1,0 +1,86 @@
+name: Security Scanning
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC (reduced from daily to save minutes)
+    - cron: '0 2 * * 0'
+  push:
+    branches: [ main ]
+    paths:
+      - 'requirements*.txt'
+      - 'requirements*.in'
+      - 'src/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'requirements*.txt'
+      - 'requirements*.in'
+      - 'src/**'
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    name: Dependency Security Scan
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install pip-audit
+      run: pip install pip-audit
+
+    - name: Run pip-audit (free alternative to safety)
+      run: |
+        pip-audit --format json --output pip-audit-report.json || true
+        pip-audit
+
+    - name: Upload pip-audit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pip-audit-report
+        path: pip-audit-report.json
+
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality & Security Analysis
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        pip install bandit ruff mypy
+        pip install -r requirements.txt
+
+    - name: Run Bandit (security linter)
+      run: |
+        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/
+
+    - name: Run Ruff (fast linter)
+      run: ruff check src/
+
+    - name: Run MyPy (type checker)
+      run: mypy src/ --ignore-missing-imports
+
+    - name: Upload Bandit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bandit-report
+        path: bandit-report.json
+
+  # Container scanning removed - Azure Functions are serverless, no container to scan
+  # pip-audit and bandit cover Python dependency and code security

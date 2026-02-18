@@ -1,0 +1,32 @@
+# Azure Functions Backend Template - Development Dependencies
+# Use pip-compile to generate requirements-dev.txt:
+#   pip-compile requirements-dev.in
+
+# Include production dependencies
+-c requirements.txt
+
+# Development & Testing Dependencies
+# Source file for pip-compile - edit this file to update dependencies
+# Then run: pip-compile requirements-dev.in
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
+
+# Code Quality
+black
+ruff
+mypy
+
+# Security
+bandit[toml]
+pip-audit
+
+# Development Tools
+pre-commit
+isort
+
+# Type Stubs
+types-requests

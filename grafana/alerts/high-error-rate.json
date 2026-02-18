@@ -1,0 +1,42 @@
+{
+  "alert": {
+    "name": "High Error Rate",
+    "message": "Error rate is above 5% for more than 5 minutes",
+    "frequency": "1m",
+    "conditions": [
+      {
+        "query": {
+          "queryType": "",
+          "refId": "A",
+          "model": {
+            "expr": "sum(rate(http_requests_errors_total{app=\"saas-backend-template\", environment=\"production\"}[5m])) / sum(rate(http_requests_total{app=\"saas-backend-template\", environment=\"production\"}[5m])) * 100",
+            "interval": "",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        "reducer": {
+          "type": "last",
+          "params": []
+        },
+        "evaluator": {
+          "params": [5],
+          "type": "gt"
+        }
+      }
+    ],
+    "executionErrorState": "alerting",
+    "noDataState": "no_data",
+    "for": "5m",
+    "annotations": {
+      "description": "The error rate for the SaaS backend has exceeded 5% for more than 5 minutes. This indicates a potential issue with the application that needs immediate attention.",
+      "runbook_url": "https://your-runbooks.com/high-error-rate"
+    },
+    "labels": {
+      "severity": "critical",
+      "team": "backend",
+      "service": "saas-backend"
+    }
+  }
+}

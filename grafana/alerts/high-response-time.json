@@ -1,0 +1,42 @@
+{
+  "alert": {
+    "name": "High Response Time",
+    "message": "Average response time is above 2 seconds for more than 5 minutes",
+    "frequency": "1m",
+    "conditions": [
+      {
+        "query": {
+          "queryType": "",
+          "refId": "A",
+          "model": {
+            "expr": "avg(http_request_duration_ms{app=\"saas-backend-template\", environment=\"production\"})",
+            "interval": "",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        "reducer": {
+          "type": "last",
+          "params": []
+        },
+        "evaluator": {
+          "params": [2000],
+          "type": "gt"
+        }
+      }
+    ],
+    "executionErrorState": "alerting",
+    "noDataState": "no_data",
+    "for": "5m",
+    "annotations": {
+      "description": "The average response time for the SaaS backend has exceeded 2 seconds for more than 5 minutes. Users may be experiencing slow performance.",
+      "runbook_url": "https://your-runbooks.com/high-latency"
+    },
+    "labels": {
+      "severity": "warning",
+      "team": "backend",
+      "service": "saas-backend"
+    }
+  }
+}

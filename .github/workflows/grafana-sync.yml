@@ -1,0 +1,52 @@
+name: Grafana Dashboard and Alert Sync
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'grafana/**'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-dashboards:
+    runs-on: ubuntu-latest
+    name: Sync Grafana Dashboards
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        pip install requests
+
+    - name: Sync Grafana dashboards and alerts
+      env:
+        GRAFANA_CLOUD_URL: ${{ vars.GRAFANA_CLOUD_URL }}
+        GRAFANA_CLOUD_API_KEY: ${{ secrets.GRAFANA_CLOUD_API_KEY }}
+      run: |
+        python scripts/sync_grafana.py
+
+  validate-dashboards:
+    runs-on: ubuntu-latest
+    name: Validate Dashboard JSON
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate JSON syntax
+      run: |
+        find grafana/ -name "*.json" -type f | while read file; do
+          echo "Validating $file"
+          if ! python -m json.tool "$file" > /dev/null; then
+            echo "✗ Invalid JSON: $file"
+            exit 1
+          fi
+          echo "✓ Valid JSON: $file"
+        done

@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Backend API
+  description:
+    REST API for the backend application. All endpoints (except health)
+    require authentication via Microsoft Entra ID bearer token.
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:7071/api
+    description: Local development
+  - url: https://{function_app}.azurewebsites.net/api
+    description: Production
+paths:
+  /health:
+    get:
+      summary: Health check endpoint - thin Azure Functions adapter.
+      description: ""
+      operationId: health
+      tags:
+        - health
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security: []
+  /auth/login:
+    post:
+      summary: Login endpoint - thin Azure Functions adapter.
+      description:
+        "Frontend Flow: 1. User authenticates with Microsoft Entra External
+        ID (OAuth2) 2. Frontend receives access token 3. Frontend calls this endpoint
+        with: Authorization: Bearer <token> 4. Backend validates token, creates/updates
+        user in database 5. Returns user profile with isNewUser flag Rate Limited:
+        10 requests per minute per IP"
+      operationId: auth_login
+      tags:
+        - auth
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds until rate limit resets
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /user/profile:
+    get:
+      summary: User profile endpoint - thin Azure Functions adapter.
+      description: "Rate Limited: 100 requests per minute for authenticated users"
+      operationId: user_profile
+      tags:
+        - user
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds until rate limit resets
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid input data
+          required:
+            - code
+            - message
+      required:
+        - error
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+        version:
+          type: string
+        database:
+          type: string
+          enum:
+            - connected
+            - disconnected
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Microsoft Entra ID access token
+security:
+  - BearerAuth: []
+tags:
+  - name: health
+    description: Health endpoints
+  - name: auth
+    description: Auth endpoints
+  - name: user
+    description: User endpoints

@@ -1,0 +1,149 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saas-backend-template"
+description = "Production-ready Azure Functions backend template for Micro SaaS"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-functions~=1.24.0",
+    "azure-identity~=1.25.0",
+    "azure-cosmos~=4.14.0",
+    "PyJWT[crypto]~=2.10.0",
+    "httpx~=0.28.1",
+    "structlog~=25.5.0",
+]
+
+[tool.setuptools_scm]
+write_to = "src/_version.py"
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.3.0",
+    "pytest-asyncio~=0.24.0",
+    "pytest-cov~=5.0.0",
+    "pytest-mock~=3.14.0",
+    "black~=25.1.0",
+    "ruff~=0.14.8",
+    "mypy~=1.19.0",
+    "bandit[toml]~=1.8.3",
+    "pip-audit~=2.7.0",
+    "pre-commit~=4.0.0",
+    "types-requests~=2.32.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = ["src.functions", "src.functions.http_functions", "function_app"]
+# Azure Functions SDK decorators are untyped - this is a known limitation
+# See: https://github.com/Azure/azure-functions-python-library/issues/215
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = [
+    "azure.*",
+    "jwt.*",
+    "httpx.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["/tests", "/.venv"]
+skips = ["B101"]  # Skip assert_used check
+
+[tool.bandit.assert_used]
+skips = ["*/test_*.py", "*/tests/*"]

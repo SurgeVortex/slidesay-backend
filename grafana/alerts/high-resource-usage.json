@@ -1,0 +1,64 @@
+{
+  "alert": {
+    "name": "High Resource Utilization",
+    "message": "System resource utilization is critically high",
+    "frequency": "1m",
+    "conditions": [
+      {
+        "query": {
+          "queryType": "",
+          "refId": "A",
+          "model": {
+            "expr": "avg(resource_utilization_percent{app=\"saas-backend-template\", environment=\"production\", resource=\"cpu\"})",
+            "interval": "",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        "reducer": {
+          "type": "last",
+          "params": []
+        },
+        "evaluator": {
+          "params": [85],
+          "type": "gt"
+        }
+      },
+      {
+        "query": {
+          "queryType": "",
+          "refId": "B",
+          "model": {
+            "expr": "avg(resource_utilization_percent{app=\"saas-backend-template\", environment=\"production\", resource=\"memory\"})",
+            "interval": "",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "B"
+          }
+        },
+        "reducer": {
+          "type": "last",
+          "params": []
+        },
+        "evaluator": {
+          "params": [90],
+          "type": "gt"
+        }
+      }
+    ],
+    "executionErrorState": "alerting",
+    "noDataState": "no_data",
+    "for": "5m",
+    "annotations": {
+      "description": "CPU usage is above 85% or memory usage is above 90% for more than 5 minutes. The system may be under heavy load and could become unresponsive.",
+      "runbook_url": "https://your-runbooks.com/high-resource-usage"
+    },
+    "labels": {
+      "severity": "warning",
+      "team": "backend",
+      "service": "saas-backend",
+      "component": "infrastructure"
+    }
+  }
+}

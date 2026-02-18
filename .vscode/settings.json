@@ -1,0 +1,20 @@
+{
+  "cSpell.words": [
+    "AUDITLOGS",
+    "creds",
+    "FUNCTIONAPP",
+    "htmlcov",
+    "junitxml",
+    "RATELIMITS",
+    "vnext"
+  ],
+  "azureFunctions.deploySubpath": ".",
+  "azureFunctions.scmDoBuildDuringDeployment": false,
+  "azureFunctions.pythonVenv": ".venv",
+  "azureFunctions.projectLanguage": "Python",
+  "azureFunctions.projectRuntime": "~4",
+  "debug.internalConsoleOptions": "neverOpen",
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}

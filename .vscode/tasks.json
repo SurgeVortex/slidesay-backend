@@ -1,0 +1,94 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Make: checks",
+      "type": "shell",
+      "command": "make checks",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Make: integration",
+      "type": "shell",
+      "command": "make integration",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Make: deps (create .venv and install)",
+      "type": "shell",
+      "command": "make deps",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Run: checks (full)",
+      "type": "shell",
+      "dependsOn": ["Make: deps (create .venv and install)", "Make: checks"],
+      "dependsOrder": "sequence",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Run: integration (full)",
+      "type": "shell",
+      "dependsOn": [
+        "Make: deps (create .venv and install)",
+        "Start Emulator",
+        "Make: integration"
+      ],
+      "dependsOrder": "sequence",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Start Emulator",
+      "type": "shell",
+      "command": "./scripts/run-emulator.sh",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Stop Emulator",
+      "type": "shell",
+      "command": "./scripts/stop-emulator.sh",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "type": "func",
+      "label": "func: host start",
+      "command": "host start",
+      "problemMatcher": "$func-python-watch",
+      "isBackground": true,
+      "dependsOn": "pip install (functions)"
+    },
+    {
+      "label": "pip install (functions)",
+      "type": "shell",
+      "osx": {
+        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
+      },
+      "windows": {
+        "command": "${config:azureFunctions.pythonVenv}\\Scripts\\python -m pip install -r requirements.txt"
+      },
+      "linux": {
+        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

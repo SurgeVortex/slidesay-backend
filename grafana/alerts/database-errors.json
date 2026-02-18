@@ -1,0 +1,43 @@
+{
+  "alert": {
+    "name": "Database Connection Issues",
+    "message": "Database operations are failing at a high rate",
+    "frequency": "1m",
+    "conditions": [
+      {
+        "query": {
+          "queryType": "",
+          "refId": "A",
+          "model": {
+            "expr": "sum(rate(function_calls_total{app=\"saas-backend-template\", environment=\"production\", function=~\".*cosmos.*\", status=\"error\"}[5m])) / sum(rate(function_calls_total{app=\"saas-backend-template\", environment=\"production\", function=~\".*cosmos.*\"}[5m])) * 100",
+            "interval": "",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        "reducer": {
+          "type": "last",
+          "params": []
+        },
+        "evaluator": {
+          "params": [10],
+          "type": "gt"
+        }
+      }
+    ],
+    "executionErrorState": "alerting",
+    "noDataState": "no_data",
+    "for": "3m",
+    "annotations": {
+      "description": "More than 10% of database operations are failing. This could indicate connectivity issues or database performance problems.",
+      "runbook_url": "https://your-runbooks.com/database-issues"
+    },
+    "labels": {
+      "severity": "critical",
+      "team": "backend",
+      "service": "saas-backend",
+      "component": "database"
+    }
+  }
+}
