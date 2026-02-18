@@ -14,7 +14,7 @@ PyJWT[crypto]
 
 # Logging & Monitoring
 # HTTP & Monitoring
-httpx
+httpx~=0.28.0
 structlog
 
 # OpenTelemetry for observability
@@ -22,3 +22,7 @@ opentelemetry-api
 opentelemetry-sdk
 opentelemetry-instrumentation-httpx
 opentelemetry-exporter-otlp-proto-http
+
+# SlideSay dependencies
+python-pptx~=1.0.0
+reportlab~=4.0

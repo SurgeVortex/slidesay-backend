@@ -7,6 +7,7 @@
     "PYTHON_ISOLATE_WORKER_DEPENDENCIES": "1",
 
     "APP_NAME": "saas-backend-template",
+  "OTEL_SERVICE_NAME": "slidesay-backend",
     "ENVIRONMENT": "development",
 
     "COSMOSDB_ENDPOINT": "https://localhost:8081",
