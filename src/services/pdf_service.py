@@ -1,7 +1,9 @@
 from io import BytesIO
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.pdfgen import canvas
+
+from reportlab.lib.pagesizes import landscape, letter
 from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+
 
 class PdfService:
     def generate(self, presentation_data: dict, watermark: bool = False) -> bytes:
