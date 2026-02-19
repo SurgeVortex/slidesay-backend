@@ -1,7 +1,11 @@
-import pytest
 import asyncio
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from src.services.usage_service import UsageService
+
 
 @pytest.fixture
 def cosmos_mock():
@@ -19,8 +23,8 @@ def run_async(coro):
 
 def make_usage(user_id, month=None, presentationsCreated=0, exportsUsed=0, tier="free"):
     if not month:
-        from datetime import datetime, timezone
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        from datetime import datetime
+        month = datetime.now(UTC).strftime("%Y-%m")
     return {
         "id": f"{user_id}:{month}",
         "userId": user_id,

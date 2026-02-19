@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from src.database.cosmos_service import CosmosService
+
 
 class PresentationService:
     CONTAINER = "presentations"
@@ -18,8 +18,8 @@ class PresentationService:
             "slides": slides,
             "transcript": transcript,
             "slideCount": len(slides),
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(UTC).isoformat(),
+            "updatedAt": datetime.now(UTC).isoformat(),
         }
         container = self.cosmos.get_container_client(self.CONTAINER)
         await self.cosmos._execute_operation(
@@ -27,7 +27,7 @@ class PresentationService:
         )
         return doc
 
-    async def get(self, user_id: str, presentation_id: str) -> Optional[dict]:
+    async def get(self, user_id: str, presentation_id: str) -> dict | None:
         container = self.cosmos.get_container_client(self.CONTAINER)
         # id and partition key are presentation_id and user_id respectively
         result = await self.cosmos._execute_operation(
@@ -51,7 +51,7 @@ class PresentationService:
         ]
         return await self.cosmos.query_items(self.CONTAINER, query, params, partition_key=user_id)
 
-    async def update(self, user_id: str, presentation_id: str, updates: dict) -> Optional[dict]:
+    async def update(self, user_id: str, presentation_id: str, updates: dict) -> dict | None:
         container = self.cosmos.get_container_client(self.CONTAINER)
         existing = await self.get(user_id, presentation_id)
         if not existing:
@@ -61,7 +61,7 @@ class PresentationService:
                 existing[key] = updates[key]
         if "slides" in updates:
             existing["slideCount"] = len(updates["slides"])
-        existing["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        existing["updatedAt"] = datetime.now(UTC).isoformat()
         await self.cosmos._execute_operation(
             "update_presentation",
             container.replace_item,

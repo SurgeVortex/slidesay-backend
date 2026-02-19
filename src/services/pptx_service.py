@@ -1,9 +1,10 @@
 from io import BytesIO
+from typing import Any
+
 from pptx import Presentation
-from pptx.util import Pt, Inches
-from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
-from typing import Dict, Any, List
+from pptx.util import Inches, Pt
+
 
 class PptxService:
     THEMES = {
@@ -63,7 +64,7 @@ class PptxService:
         # In python-pptx, there is no full global font setter, but we can set font in each shape
         pass  # Font is set per-text/run in helpers
 
-    def _add_title_slide(self, prs: Presentation, slide_data: Dict[str, Any], theme: Dict[str, Any]):
+    def _add_title_slide(self, prs: Presentation, slide_data: dict[str, Any], theme: dict[str, Any]):
         layout = prs.slide_layouts[0]  # Title Slide
         slide = prs.slides.add_slide(layout)
         slide.shapes.title.text = slide_data.get("title", "")
@@ -78,7 +79,7 @@ class PptxService:
         background.solid()
         background.fore_color.rgb = theme["background"]
 
-    def _add_content_slide(self, prs: Presentation, slide_data: Dict[str, Any], theme: Dict[str, Any]):
+    def _add_content_slide(self, prs: Presentation, slide_data: dict[str, Any], theme: dict[str, Any]):
         layout = prs.slide_layouts[1]  # Title and Content
         slide = prs.slides.add_slide(layout)
         slide.shapes.title.text = slide_data.get("title", "")
@@ -103,7 +104,7 @@ class PptxService:
         background.solid()
         background.fore_color.rgb = theme["background"]
 
-    def _add_two_column_slide(self, prs: Presentation, slide_data: Dict[str, Any], theme: Dict[str, Any]):
+    def _add_two_column_slide(self, prs: Presentation, slide_data: dict[str, Any], theme: dict[str, Any]):
         layout = prs.slide_layouts[3] if len(prs.slide_layouts) > 3 else prs.slide_layouts[1]  # Two Content or fallback
         slide = prs.slides.add_slide(layout)
         slide.shapes.title.text = slide_data.get("title", "")
@@ -127,7 +128,7 @@ class PptxService:
         background.solid()
         background.fore_color.rgb = theme["background"]
 
-    def _add_section_slide(self, prs: Presentation, slide_data: Dict[str, Any], theme: Dict[str, Any]):
+    def _add_section_slide(self, prs: Presentation, slide_data: dict[str, Any], theme: dict[str, Any]):
         layout = prs.slide_layouts[2] if len(prs.slide_layouts) > 2 else prs.slide_layouts[0]
         slide = prs.slides.add_slide(layout)
         placeholder = self._get_section_header_placeholder(slide)
@@ -159,7 +160,7 @@ class PptxService:
                     return shape
         return slide.shapes.title if hasattr(slide.shapes, 'title') else None
 
-    def _add_notes(self, slide, notes: str, theme: Dict[str, Any]):
+    def _add_notes(self, slide, notes: str, theme: dict[str, Any]):
         notes_slide = slide.notes_slide
         text_frame = notes_slide.notes_text_frame
         text_frame.clear()

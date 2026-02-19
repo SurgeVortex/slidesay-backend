@@ -84,7 +84,9 @@ async def health_check(req: func.HttpRequest) -> func.HttpResponse:
 
 # ------------------------------ Presentation Endpoints ------------------------------
 import json
+
 from src.services.presentation_service import PresentationService
+
 
 def _get_presentation_service():
     # Use CosmosService from DI container
@@ -98,7 +100,7 @@ async def create_presentation(req: func.HttpRequest) -> func.HttpResponse:
     monitor = container.create_monitoring_service()
     endpoint_service = _get_endpoint_service()
     auth_svc = container.get_auth_service()
-    
+
     # Auth
     generic_req = GenericHttpRequest(
         method=req.method, path=req.url, headers=dict(req.headers), body=req.get_body().decode("utf-8") if req.get_body() else None

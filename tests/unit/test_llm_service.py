@@ -1,10 +1,12 @@
-import pytest
-import types
 import json
+from unittest.mock import AsyncMock
+
 import httpx
-from unittest.mock import patch, AsyncMock
-from src.services.llm_service import LLMService, MODELS
-from httpx import Response, Request
+import pytest
+from httpx import Request, Response
+
+from src.services.llm_service import MODELS, LLMService
+
 
 class MockResponse:
     def __init__(self, json_data, status_code=200):
@@ -132,12 +134,12 @@ async def test_custom_slide_count(mocker):
         ]
     }
     captured_msg = {}
-    
+
     async def fake_post(self, url, headers=None, json=None):
         # The user's message prompt goes in json["messages"][1]["content"]
         captured_msg["msg"] = json["messages"][1]["content"]
         return MockResponse(response_content, 200)
-    
+
     mocker.patch("httpx.AsyncClient.post", fake_post)
     svc = LLMService(api_key="FAKE")
     transcript = "say stuff"

@@ -1,14 +1,13 @@
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
-import uuid
-
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 sys.path.append(str(Path(__file__).parent.parent.parent / 'src'))
 
 from services.presentation_service import PresentationService
+
 
 class DummyCosmos:
     def __init__(self):

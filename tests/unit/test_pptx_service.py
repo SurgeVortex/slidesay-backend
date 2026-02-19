@@ -1,8 +1,10 @@
-import pytest
-from pptx import Presentation
-from io import BytesIO
-from src.services.pptx_service import PptxService
 import re
+from io import BytesIO
+
+from pptx import Presentation
+
+from src.services.pptx_service import PptxService
+
 
 def get_presentation(bytes_data):
     return Presentation(BytesIO(bytes_data))
