@@ -252,6 +252,7 @@ import os
 
 from src.services.usage_service import UsageService
 from src.functions.subscription_functions import create_checkout_session, create_customer_portal
+from src.functions.webhook_functions import stripe_webhook
 
 
 def _get_usage_service():
@@ -274,6 +275,11 @@ async def create_stripe_checkout(req: func.HttpRequest) -> func.HttpResponse:
 async def create_stripe_customer_portal(req: func.HttpRequest) -> func.HttpResponse:
     return await create_customer_portal(req)
 
+
+@app.function_name(name="StripeWebhook")
+@app.route(route="api/webhooks/stripe", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+async def stripe_webhook_endpoint(req: func.HttpRequest) -> func.HttpResponse:
+    return await stripe_webhook(req)
 
 @app.function_name(name="AdminSetTier")
 @app.route(route="admin/users/{userId}/tier", methods=["PUT"], auth_level=func.AuthLevel.ANONYMOUS)
