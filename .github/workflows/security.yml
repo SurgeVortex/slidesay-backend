@@ -19,7 +19,7 @@ on:
 
 jobs:
   dependency-scan:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Dependency Security Scan
 
     steps:
@@ -47,7 +47,7 @@ jobs:
         path: pip-audit-report.json
 
   code-quality:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Code Quality & Security Analysis
 
     steps:

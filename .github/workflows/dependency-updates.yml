@@ -8,7 +8,7 @@ on:
 
 jobs:
   update-dependencies:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Update Python Dependencies
 
     steps:
@@ -65,7 +65,7 @@ jobs:
         labels: dependencies, automated
 
   update-github-actions:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Update GitHub Actions
 
     steps:
