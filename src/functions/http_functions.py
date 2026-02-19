@@ -251,6 +251,7 @@ async def export_presentation(req: func.HttpRequest) -> func.HttpResponse:
 import os
 
 from src.services.usage_service import UsageService
+from src.functions.subscription_functions import create_checkout_session, create_customer_portal
 
 
 def _get_usage_service():
@@ -261,6 +262,17 @@ def _is_admin(user_id: str) -> bool:
     """Check if user is an admin. Admin IDs from ADMIN_USER_IDS env var (comma-separated)."""
     admin_ids = os.environ.get("ADMIN_USER_IDS", "").split(",")
     return user_id.strip() in [a.strip() for a in admin_ids if a.strip()]
+
+
+@app.function_name(name="CreateStripeCheckout")
+@app.route(route="stripe/checkout", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+async def create_stripe_checkout(req: func.HttpRequest) -> func.HttpResponse:
+    return await create_checkout_session(req)
+
+@app.function_name(name="CreateStripeCustomerPortal")
+@app.route(route="stripe/customer-portal", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+async def create_stripe_customer_portal(req: func.HttpRequest) -> func.HttpResponse:
+    return await create_customer_portal(req)
 
 
 @app.function_name(name="AdminSetTier")
