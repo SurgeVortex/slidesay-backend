@@ -119,8 +119,12 @@ async def create_presentation(req: func.HttpRequest) -> func.HttpResponse:
     transcript = data.get("transcript", "")
     # If slides missing, try to generate (not implemented)
     if not slides and transcript:
-        # TODO: Call LLM service
-        slides = []  # For now, just an empty list
+        from src.services.llm_service import LLMService
+        import os
+        llm_svc = LLMService(api_key=os.environ.get("OPENROUTER_API_KEY", ""))
+        structured = await llm_svc.structure_transcript(transcript)
+        title = title or structured.get("title", "Untitled Presentation")
+        slides = structured.get("slides", [])
     if not title:
         return func.HttpResponse(json.dumps({"error": "Missing title"}), status_code=400)
     if not isinstance(slides, list):
