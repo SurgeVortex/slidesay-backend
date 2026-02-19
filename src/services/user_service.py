@@ -1,4 +1,3 @@
-import asyncio
 from typing import Optional, Any
 from src.database.cosmos_service import CosmosService
 
