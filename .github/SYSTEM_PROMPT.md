@@ -6,7 +6,7 @@
 - **Environment**: prod
 - **Function App Name**: func-microsaas-factory-slidesay-prod
 - **Resource Group**: rg-microsaas-factory-slidesay-app-prod
-- **API Domain**: api.slidesay.isonet.casa
+- **API Domain**: slidesay-api.isonet.casa
 
 ## Quick Reference Documentation
 
