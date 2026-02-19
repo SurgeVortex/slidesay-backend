@@ -154,17 +154,17 @@ module = [
     "opentelemetry.*",
     "stripe.*",
     "azure.*",
+    "reportlab.*",
+    "structlog.*",
 ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
     "src.functions.*",
-    "src.services.stripe_service",
-    "src.services.user_service",
-    "src.services.endpoint_service",
-    "src.services.presentation_service",
+    "src.services.*",
     "src.monitoring.*",
+    "src.utils.*",
 ]
 disallow_untyped_defs = false
 disallow_untyped_decorators = false
