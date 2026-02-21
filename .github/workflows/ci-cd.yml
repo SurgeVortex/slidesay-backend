@@ -25,7 +25,7 @@ env:
 
 jobs:
   checks:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Checks (lint, types, security)
 
     steps:
@@ -78,7 +78,7 @@ jobs:
         python scripts/validate_grafana_config.py
 
   integration:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Integration tests (Cosmos emulator)
     # Integration tests are opt-in for template projects. By default they are skipped
     # in GitHub-hosted runners because the Cosmos emulator requires privileged
@@ -149,7 +149,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}  # Required for v4
 
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Build Application
 
     steps:
